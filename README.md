@@ -427,7 +427,15 @@ public class CustomRealmTest {
 
 例：
 
-在RealmTest中
+加密算法：(通过这个算法算出密码对应的结果，存在数据库中)
+
+```java
+Md5Hash md5Password = new Md5Hash("Password", "盐");
+```
+
+
+
+在RealmTest中：
 
 ```java
 // 创建HashedCredentialsMatcher对象
@@ -436,7 +444,32 @@ HashedCredentialsMatcher matcher = new HashedCredentialsMatcher();
 matcher.setHashAlgorithmName("md5");
 // 设置加密次数
 matcher.setHashIterations(1);
-// 设置CustomRealm使用了Md5加密
+// 声明CustomRealm使用了Md5加密
 customRealm.setCredentialsMatcher(matcher);
 ```
 
+
+
+在CustomRealm重写的认证方法中
+
+```java
+............
+// 创建返回对象
+SimpleAuthenticationInfo simpleAuthenticationInfo = new SimpleAuthenticationInfo("用户名",
+password, "customRealm");
+//加盐
+simpleAuthenticationInfo.setCredentialsSalt(ByteSource.Util.bytes("盐"));
+return simpleAuthenticationInfo;
+```
+
+
+
+
+
+## 会话管理
+
+**Shiro Session管理**
+
+- SessionManager、SessionDAO
+- Redis实现Session共享
+- Redis实现Session共享可能存在的问题
