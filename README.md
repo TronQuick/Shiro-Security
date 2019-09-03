@@ -19,7 +19,7 @@
 
 
 
-![Shiro整体架构](http://github.com/TronQuick/Shiro-Security/Shiro整体架构.png)
+![Shiro整体架构](https://github.com/TronQuick/Shiro-Security/shiro整体架构.png)
 
 
 
