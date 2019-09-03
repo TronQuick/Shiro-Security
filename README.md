@@ -464,6 +464,187 @@ return simpleAuthenticationInfo;
 
 
 
+## 通过注解方式配置授权
+
+需要添加aspectj依赖
+
+```xml
+<!-- Shiro注解 -->
+<dependency>
+    <groupId>org.aspectj</groupId>
+    <artifactId>aspectjweaver</artifactId>
+    <version>1.8.9</version>
+</dependency>
+```
+
+配置XML:
+
+```xml
+<!-- 开启AOP -->
+<aop:config proxy-target-class="true"/>
+
+<!-- 保证 Shiro内部生命周期 -->
+<bean class="org.apache.shiro.spring.LifecycleBeanPostProcessor"/>
+
+<!-- 开启Shiro授权生效 -->
+<bean class="org.apache.shiro.spring.security.interceptor.AuthorizationAttributeSourceAdvisor">
+    <property name="securityManager" ref="securityManager"/>
+</bean>
+```
+
+
+
+
+
+在Controller中:
+
+- @RequiresRoles("")
+
+```java
+//通过注解设置角色权限为admin才可访问
+@RequiresRoles("admin")
+@RequestMapping(value = "/testRole", method = RequestMethod.GET)
+@ResponseBody
+public String testRole() {
+    return "test role success";
+}
+```
+
+
+
+- RequiresPermissions("")
+
+```java
+// 具备权限的用户才能使用主体方法
+@RequiresPermissions("xxx")
+@RequestMapping("/xxx")
+@ResponseBody
+public void xxx(){
+    ...
+}
+```
+
+
+
+## 内置过滤器
+
+**Shiro内置过滤器**
+
+- anon无需认证，authBasic，authc需要认证后访问，user需要当前存在用户，logout退出
+- perms权限，roles角色，ssl协议，port端口
+
+
+
+Controller中：
+
+```java
+/**
+* 通过在service.xml配置访问权限
+*/
+@RequestMapping(value = "/testRoles", method = RequestMethod.GET)
+@ResponseBody
+public String testRoles() {
+return "test roles success";
+}
+
+@RequestMapping(value = "/testRoles1", method = RequestMethod.GET)
+@ResponseBody
+public String testRoles1() {
+return "test roles1 success";
+}
+
+@RequestMapping(value = "/testPerms", method = RequestMethod.GET)
+@ResponseBody
+public String testPerms() {
+return "test roles success";
+}
+
+@RequestMapping(value = "/testPerms1", method = RequestMethod.GET)
+@ResponseBody
+public String testPerms1() {
+return "test roles1 success";
+}
+```
+
+
+
+XML中：
+
+```xml
+    <bean id="shiroFilter"
+          class="org.apache.shiro.spring.web.ShiroFilterFactoryBean">
+        <property name="securityManager" ref="securityManager"/>
+        <!-- 没有登录的用户请求需要登录的页面时自动跳转到登录页面，不是必须的属性，不输入地址的话会自动寻找项目web项目的根目录下的”/login.jsp”页面 -->
+        <property name="loginUrl" value="login.html"/>
+        <!-- 没有权限默认跳转的页面 -->
+        <property name="unauthorizedUrl" value="403.html"/>
+        <property name="filterChainDefinitions">
+            <!-- 自上到下 --><!-- anon:表示可以匿名使用。 authc:表示需要认证(登录)才能使用，没有参数.  roles["admin,guest"],每个参数通过才算通过，user表示必须存在用户 -->
+            <value>
+                /login.html = anon
+                /subLogin = anon
+                /testRoles = roles["admin"]
+                /testPerms = perms["user:delete"]
+                /testPerms1 = perms["user:delete","user:updata"]
+                /* = authc
+            </value>
+        </property>
+    </bean>
+```
+
+
+
+自定义Filter
+
+```java
+/**
+ * 功能：传多个Roles，满足其中一个即可
+ */
+public class RolesOrFilter extends AuthorizationFilter {
+
+    @Override
+    protected boolean isAccessAllowed(ServletRequest servletRequest,
+                                      ServletResponse servletResponse, Object o) throws Exception {
+        Subject subject = getSubject(servletRequest, servletResponse);
+
+        String[] roles = (String[]) o;
+
+        if (roles == null || roles.length == 0) {
+            return true;
+        }
+
+        for (String role : roles) {
+            if (subject.hasRole(role)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+}
+```
+
+XML:
+
+```xml
+<!-- 自定义权限filter -->
+<bean id="rolesOrFilter" class="shiro.filter.RolesOrFilter"/>
+
+<bean id="shiroFilter" class="org.apache.shiro.spring.web.ShiroFilterFactoryBean">
+    <property name="securityManager" ref="securityManager"/>
+    <property name="filterChainDefinitions">
+        <value>
+            /testRoles1 = rolesOr["admin","admin1"]
+        </value>
+    </property>
+    <property name="filters">
+        <map>
+            <entry key="rolesOr" value-ref="rolesOrFilter"/>
+        </map>
+    </property>
+</bean>
+```
+
 
 
 ## 会话管理
